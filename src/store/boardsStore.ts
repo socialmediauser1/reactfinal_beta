@@ -50,10 +50,14 @@ export const useBoardsStore = create<BoardsStore>((set, get) => ({
         await get().loadBoardMembers(targetId);
       }
     } catch (err) {
-      set({
-        loading: false,
-        error: err instanceof Error ? err.message : "Failed to load boards.",
-      });
+      console.error("boardsStore.initialize failed:", err);
+      const msg =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+            ? String((err as { message: unknown }).message)
+            : JSON.stringify(err);
+      set({ loading: false, error: msg });
     }
   },
 
