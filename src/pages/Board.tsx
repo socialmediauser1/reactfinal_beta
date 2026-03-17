@@ -78,7 +78,7 @@ export default function Board() {
   const boardMembers    = useBoardsStore((s) => s.boardMembers);
   const activeBoard     = boards.find((b) => b.id === activeBoardId);
   const isTeamBoard     = activeBoard?.type === "team";
-  const memberEmails    = boardMembers.map((m) => m.email);
+  const members         = boardMembers;
 
   const [createModalColumnId, setCreateModalColumnId] = useState<string | null>(null);
   const [editingCard, setEditingCard]                 = useState<Card | null>(null);
@@ -248,6 +248,7 @@ export default function Board() {
               key={column.id}
               column={column}
               cards={cardsInColumn}
+              members={members}
               accentColor={accentColor}
               swimlaneGroupBy={swimlaneGroupBy}
               loading={loading}
@@ -280,7 +281,7 @@ export default function Board() {
           columns={sortedColumns}
           defaultColumnId={createModalColumnId || sortedColumns[0]?.id}
           isTeamBoard={isTeamBoard}
-          memberEmails={memberEmails}
+          members={members}
           storeError={error}
           onSubmit={(v) => void handleCreateCardSubmit(v)}
           onCancel={() => setCreateModalColumnId(null)}
@@ -299,7 +300,7 @@ export default function Board() {
           }}
           columns={sortedColumns}
           isTeamBoard={isTeamBoard}
-          memberEmails={memberEmails}
+          members={members}
           storeError={error}
           onSubmit={(v) =>
             void handleEditCardSubmit(editingCard.id, {
@@ -387,12 +388,13 @@ function AddCardButton({ onClick, disabled, accentColor }: { onClick: () => void
 }
 
 function BoardColumn({
-  column, cards, swimlaneGroupBy, loading, draggingCardId, isDragOver,
+  column, cards, members, swimlaneGroupBy, loading, draggingCardId, isDragOver,
   canDeleteColumn, accentColor, onArchiveCard, onDeleteCard, onEditCard, onAddCard,
   onEditColumn, onDeleteColumn, onCardDragStart, onCardDragEnd,
   onColumnDragOver, onColumnDragLeave, onColumnDrop,
 }: {
-  column: Column; cards: Card[]; swimlaneGroupBy: SwimlaneGroupBy | null;
+  column: Column; cards: Card[]; members: { email: string; displayName?: string }[];
+  swimlaneGroupBy: SwimlaneGroupBy | null;
   loading: boolean; draggingCardId: string | null; isDragOver: boolean;
   canDeleteColumn: boolean; accentColor: string;
   onArchiveCard: (id: string) => void; onDeleteCard: (id: string) => void;
@@ -519,6 +521,7 @@ function BoardColumn({
                     <KanbanCard
                       key={card.id}
                       card={card}
+                      members={members}
                       loading={loading}
                       isDragging={draggingCardId === card.id}
                       onEdit={() => onEditCard(card)}
@@ -541,14 +544,16 @@ function BoardColumn({
 }
 
 function KanbanCard({
-  card, loading, isDragging, onEdit, onArchive, onDelete, onDragStart, onDragEnd,
+  card, members, loading, isDragging, onEdit, onArchive, onDelete, onDragStart, onDragEnd,
 }: {
-  card: Card; loading: boolean; isDragging: boolean;
+  card: Card; members: { email: string; displayName?: string }[];
+  loading: boolean; isDragging: boolean;
   onEdit: () => void; onArchive: () => void; onDelete: () => void;
   onDragStart: () => void; onDragEnd: () => void;
 }) {
   const cat  = CATEGORY_COLORS[card.category];
   const pcfg = card.priority ? PRIORITY_CONFIG[card.priority] : null;
+  const assigneeMember = card.assignee ? members.find((m) => m.email === card.assignee) : undefined;
 
   return (
     <li
@@ -604,7 +609,12 @@ function KanbanCard({
         <span style={{ marginLeft: "auto", fontSize: "0.68rem", color: "#9ca3af", whiteSpace: "nowrap" }}>
           {formatCardAge(card.createdAt)} · col {formatColumnAge(card.columnEnteredAt)}
         </span>
-        {card.assignee && <AssigneeAvatar email={card.assignee} />}
+        {card.assignee && (
+          <AssigneeAvatar
+            email={card.assignee}
+            displayName={assigneeMember?.displayName}
+          />
+        )}
       </div>
     </li>
   );
@@ -683,12 +693,13 @@ function Badge({ bg, text, label }: { bg: string; text: string; label: string })
   );
 }
 
-function AssigneeAvatar({ email }: { email: string }) {
-  const initial = email.charAt(0).toUpperCase();
+function AssigneeAvatar({ email, displayName }: { email: string; displayName?: string }) {
+  const name = displayName || email;
+  const initial = name.charAt(0).toUpperCase();
   const hue = email.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
   return (
     <span
-      title={email}
+      title={displayName ? `${displayName} (${email})` : email}
       style={{
         width: "20px",
         height: "20px",
@@ -715,10 +726,11 @@ interface CardFormValues {
 }
 
 function CardFormModal({
-  mode, initialValues, columns, defaultColumnId, isTeamBoard, memberEmails, storeError, onSubmit, onCancel,
+  mode, initialValues, columns, defaultColumnId, isTeamBoard, members, storeError, onSubmit, onCancel,
 }: {
   mode: "create" | "edit"; initialValues?: CardFormValues; columns: Column[];
-  defaultColumnId?: string; isTeamBoard: boolean; memberEmails: string[];
+  defaultColumnId?: string; isTeamBoard: boolean;
+  members: { email: string; displayName?: string }[];
   storeError: string | null;
   onSubmit: (values: CardFormValues) => void; onCancel: () => void;
 }) {
@@ -732,9 +744,14 @@ function CardFormModal({
     initialValues?.columnId ?? defaultColumnId ?? columns[0]?.id ?? ""
   );
 
-  const assigneeOptions = [
-    "",
-    ...new Set([...memberEmails, ...(initialValues?.assignee ? [initialValues.assignee] : [])]),
+  const memberEmails = members.map((m) => m.email);
+  const assigneeEmails = new Set([...memberEmails, ...(initialValues?.assignee ? [initialValues.assignee] : [])]);
+  const assigneeOptions: { email: string; displayName?: string }[] = [
+    { email: "" },
+    ...[...assigneeEmails].map((email) => ({
+      email,
+      displayName: members.find((m) => m.email === email)?.displayName,
+    })),
   ];
 
   return (
@@ -786,9 +803,9 @@ function CardFormModal({
         {isTeamBoard && (
           <Field label="Assignee">
             <select value={assignee} onChange={(e) => setAssignee(e.target.value)} style={inputStyle}>
-              {assigneeOptions.map((email) => (
+              {assigneeOptions.map(({ email, displayName }) => (
                 <option key={email} value={email}>
-                  {email === "" ? "— Unassigned —" : email}
+                  {email === "" ? "— Unassigned —" : (displayName || email)}
                 </option>
               ))}
             </select>

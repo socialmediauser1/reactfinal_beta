@@ -105,15 +105,17 @@
  * $$;
  * grant execute on function public.join_board_by_code to authenticated;
  *
- * -- 8. RPC to list all members of a board (owner + joined members) with emails
+ * -- 8. RPC to list all members of a board (owner + joined members) with emails and display names
  * create or replace function public.get_board_members(p_board_id uuid)
- * returns table(user_id uuid, email text) language sql security definer as $$
- *   select b.owner_id as user_id, au.email
+ * returns table(user_id uuid, email text, display_name text) language sql security definer as $$
+ *   select b.owner_id as user_id, au.email,
+ *          au.raw_user_meta_data->>'display_name' as display_name
  *   from public.boards b
  *   join auth.users au on au.id = b.owner_id
  *   where b.id = p_board_id
  *   union
- *   select bm.user_id, au.email
+ *   select bm.user_id, au.email,
+ *          au.raw_user_meta_data->>'display_name' as display_name
  *   from public.board_members bm
  *   join auth.users au on au.id = bm.user_id
  *   where bm.board_id = p_board_id;
@@ -254,10 +256,14 @@ export const supabaseBoardsApi = {
     if (error) throw error;
   },
 
-  async getBoardMembers(boardId: string): Promise<{ userId: string; email: string }[]> {
+  async getBoardMembers(boardId: string): Promise<{ userId: string; email: string; displayName?: string }[]> {
     const { data, error } = await supabase.rpc("get_board_members", { p_board_id: boardId });
     if (error) throw error;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data ?? []).map((row: any) => ({ userId: row.user_id as string, email: row.email as string }));
+    return (data ?? []).map((row: any) => ({
+      userId: row.user_id as string,
+      email: row.email as string,
+      displayName: (row.display_name as string | null) ?? undefined,
+    }));
   },
 };

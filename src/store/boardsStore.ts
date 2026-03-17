@@ -7,7 +7,7 @@ import type { Board } from "../types";
 interface BoardsState {
   boards: Board[];
   activeBoardId: string | null;
-  boardMembers: { userId: string; email: string }[];
+  boardMembers: { userId: string; email: string; displayName?: string }[];
   loading: boolean;
   error: string | null;
 }
