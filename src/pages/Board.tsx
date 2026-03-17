@@ -686,7 +686,7 @@ function Badge({ bg, text, label }: { bg: string; text: string; label: string })
 }
 
 function AssigneeAvatar({ email, displayName }: { email: string; displayName?: string }) {
-  const name = displayName || email;
+  const name = displayName || email.split("@")[0];
   const initial = name.charAt(0).toUpperCase();
   const hue = email.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % 360;
   return (
@@ -797,7 +797,7 @@ function CardFormModal({
             <select value={assignee} onChange={(e) => setAssignee(e.target.value)} style={inputStyle}>
               {assigneeOptions.map(({ email, displayName }) => (
                 <option key={email} value={email}>
-                  {email === "" ? "— Unassigned —" : (displayName || email)}
+                  {email === "" ? "— Unassigned —" : (displayName || email.split("@")[0])}
                 </option>
               ))}
             </select>

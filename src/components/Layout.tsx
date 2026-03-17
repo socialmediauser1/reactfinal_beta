@@ -420,7 +420,7 @@ function BoardItem({
             <div key={m.userId} style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.2rem" }}>
               <MemberAvatar email={m.email} />
               <span style={{ fontSize: "0.75rem", color: "#475569", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {m.displayName || m.email}
+                {m.displayName || m.email.split("@")[0]}
               </span>
               {m.userId === board.ownerId && (
                 <span style={{ fontSize: "0.58rem", padding: "0.05rem 0.25rem", borderRadius: "3px", backgroundColor: "#fef3c7", color: "#92400e", fontWeight: 700, flexShrink: 0 }}>
