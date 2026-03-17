@@ -8,8 +8,6 @@ import type {
   SwimlaneGroupBy,
 } from "../types";
 
-export const API_APPROACH = "fetch" as const;
-
 export interface CreateCardRequest {
   title: string;
   description?: string;

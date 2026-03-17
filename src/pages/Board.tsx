@@ -18,15 +18,7 @@ const PRIORITY_CONFIG: Record<CardPriority, { bg: string; text: string; border: 
 
 const COLUMN_ACCENTS = ["#4f46e5", "#0891b2", "#16a34a", "#d97706", "#9333ea"];
 
-function formatCardAge(isoDate: string): string {
-  const hours = Math.max(0, Math.floor((Date.now() - Date.parse(isoDate)) / 3_600_000));
-  if (Number.isNaN(hours)) return "?";
-  if (hours < 1) return "<1h";
-  if (hours < 24) return `${hours}h`;
-  return `${Math.floor(hours / 24)}d`;
-}
-
-function formatColumnAge(isoDate: string): string {
+function formatAge(isoDate: string): string {
   const hours = Math.max(0, Math.floor((Date.now() - Date.parse(isoDate)) / 3_600_000));
   if (Number.isNaN(hours)) return "?";
   if (hours < 1) return "<1h";
@@ -607,7 +599,7 @@ function KanbanCard({
       <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginTop: "0.55rem", flexWrap: "wrap" }}>
         <Badge bg={cat.bg} text={cat.text} label={card.category} />
         <span style={{ marginLeft: "auto", fontSize: "0.68rem", color: "#9ca3af", whiteSpace: "nowrap" }}>
-          {formatCardAge(card.createdAt)} · col {formatColumnAge(card.columnEnteredAt)}
+          {formatAge(card.createdAt)} · col {formatAge(card.columnEnteredAt)}
         </span>
         {card.assignee && (
           <AssigneeAvatar
